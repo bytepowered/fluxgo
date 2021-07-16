@@ -103,7 +103,7 @@ func NewAdaptWebListenerWith(listenerId string, options *flux.Configuration, ide
 	// 流量日志
 	if enabled := features.GetBool(ConfigKeyFeatureTrafficEnable); enabled {
 		logger.Infof("WebListener(id:%s), feature TRAFFIC: enabled", webListener.id)
-		webListener.AddFilter(NewAccessLogFilter())
+		webListener.AddFilter(NewTrafficVisitFilter())
 	}
 	// After features
 	if mws != nil && len(mws.AfterFeature) > 0 {
