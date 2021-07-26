@@ -40,7 +40,9 @@ func DecodeEndpoint(bytes []byte) (flux.EndpointSpec, error) {
 }
 
 func ToEndpointEvent(ep *flux.EndpointSpec, etype remoting.NodeEventType) (fxEvt flux.EndpointEvent, err error) {
-	flux.AssertNotEmpty(ep.SpecKey, "<endpoint.SpecKey> is required")
+	if ep.SpecKey == "" {
+		return emptyEndpointEvent, fmt.Errorf("ENDPOINT:SPECKEY:REQUIRED")
+	}
 	event := flux.EndpointEvent{Endpoint: *ep}
 	switch etype {
 	case remoting.EventTypeNodeAdd:
