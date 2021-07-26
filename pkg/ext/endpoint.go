@@ -10,7 +10,8 @@ var (
 	endpoints = new(sync.Map)
 )
 
-func MakeEndpointKey(method, pattern string) string {
+func MakeEndpointSpecKey(method, pattern string) string {
+	// Note: pattern is case-sensitive
 	return strings.ToUpper(method) + "#" + pattern
 }
 
