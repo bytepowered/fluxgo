@@ -34,10 +34,13 @@ func DecodeEndpoint(bytes []byte) (flux.EndpointSpec, error) {
 	if !ep.IsValid() {
 		return emptyEndpoint, errors.New("DECODE:VERIFY:ENDPOINT/invalid")
 	}
+	// 构建默认Endpoint标识
+	ep.SpecKey = ext.MakeEndpointSpecKey(ep.HttpMethod, ep.HttpPattern)
 	return ep, nil
 }
 
 func ToEndpointEvent(ep *flux.EndpointSpec, etype remoting.NodeEventType) (fxEvt flux.EndpointEvent, err error) {
+	flux.AssertNotEmpty(ep.SpecKey, "<endpoint.SpecKey> is required")
 	event := flux.EndpointEvent{Endpoint: *ep}
 	switch etype {
 	case remoting.EventTypeNodeAdd:

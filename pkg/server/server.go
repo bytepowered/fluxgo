@@ -349,6 +349,10 @@ func (d *DispatchServer) onEndpointEvent(event flux.EndpointEvent) {
 		logger.Warnw("SERVER:EVENT:ENDPOINT:METHOD/ignore", epvars...)
 		return
 	}
+	if ep.SpecKey == "" {
+		logger.Warnw("SERVER:EVENT:ENDPOINT:SPEC/invalid", epvars...)
+		return
+	}
 	if err := internal.VerifyAnnotations(ep.Annotations); err != nil {
 		logger.Warnw("SERVER:EVENT:ENDPOINT:ANNOTATION/invalid", epvars...)
 		return
@@ -446,11 +450,10 @@ func (d *DispatchServer) newEndpointHandler(endpoint *flux.MVCEndpoint) flux.Web
 }
 
 func (d *DispatchServer) selectMVCEndpoint(endpoint *flux.EndpointSpec) (*flux.MVCEndpoint, bool) {
-	key := ext.MakeEndpointKey(endpoint.HttpMethod, endpoint.HttpPattern)
-	if mve, ok := ext.EndpointByKey(key); ok {
+	if mve, ok := ext.EndpointByKey(endpoint.SpecKey); ok {
 		return mve, false
 	} else {
-		return ext.RegisterEndpoint(key, endpoint), true
+		return ext.RegisterEndpoint(endpoint.SpecKey, endpoint), true
 	}
 }
 
