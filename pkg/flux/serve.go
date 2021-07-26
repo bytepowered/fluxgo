@@ -10,31 +10,19 @@ var _ error = new(ServeError)
 // ServeError 定义网关处理请求的服务错误；
 // 它包含：错误定义的状态码、错误消息、内部错误等元数据
 type ServeError struct {
-	StatusCode int                    // 响应状态码
-	ErrorCode  interface{}            // 业务错误码
-	Message    string                 // 错误消息
-	CauseError error                  // 内部错误对象；错误对象不会被输出到请求端；
-	Header     http.Header            // 响应Header
-	Extras     map[string]interface{} // 用于定义和跟踪的额外信息；额外信息不会被输出到请求端；
+	StatusCode int         // 响应状态码
+	ErrorCode  interface{} // 业务错误码
+	Message    string      // 错误消息
+	CauseError error       // 内部错误对象；错误对象不会被输出到请求端；
+	Header     http.Header // 响应Header
 }
 
 func (e *ServeError) Error() string {
 	if nil != e.CauseError {
-		return fmt.Sprintf("ServeError: StatusCode=%d, ErrorCode=%s, Message=%s, Extras=%+v, Error=%s", e.StatusCode, e.ErrorCode, e.Message, e.Extras, e.CauseError)
+		return fmt.Sprintf("ServeError: StatusCode=%d, ErrorCode=%s, Message=%s, Error=%s", e.StatusCode, e.ErrorCode, e.Message, e.CauseError)
 	} else {
-		return fmt.Sprintf("ServeError: StatusCode=%d, ErrorCode=%s, Message=%s, Extras=%+v", e.StatusCode, e.ErrorCode, e.Message, e.Extras)
+		return fmt.Sprintf("ServeError: StatusCode=%d, ErrorCode=%s, Message=%s", e.StatusCode, e.ErrorCode, e.Message)
 	}
-}
-
-func (e *ServeError) GetExtra(key string) interface{} {
-	return e.Extras[key]
-}
-
-func (e *ServeError) SetExtra(key string, value interface{}) {
-	if e.Extras == nil {
-		e.Extras = make(map[string]interface{}, 4)
-	}
-	e.Extras[key] = value
 }
 
 func (e *ServeError) MergeHeader(header http.Header) *ServeError {
