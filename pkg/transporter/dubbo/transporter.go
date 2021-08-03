@@ -267,19 +267,18 @@ func (b *RpcTransporter) DoInvoke(ctx flux.Context, service flux.ServiceSpec) (*
 	}
 	// Invoke
 	if b.trace {
-		args, _ := _json.MarshalToString(map[string]interface{}{
-			"invarg.names": strings.Join(func() []string {
+		invargs := map[string]interface{}{
+			"names": strings.Join(func() []string {
 				names := make([]string, len(service.Arguments))
 				for i := 0; i < len(service.Arguments); i++ {
 					names[i] = service.Arguments[i].Name
 				}
 				return names
 			}(), ","),
-			"invarg.types":  types,
-			"invarg.values": values,
-			"attachments":   attachments,
-		})
-		trace.Infow("TRANSPORTER:DUBBO:INVOKE/args", "args", args)
+			"types":  types,
+			"values": values,
+		}
+		trace.Infow("TRANSPORTER:DUBBO:INVOKE/args", "invarg", invargs, "invattrs", attachments)
 	}
 	invret, invatt, inverr := b.invoke0(ctx, service, types, values, attachments)
 	if b.trace && inverr == nil && invret != nil {
