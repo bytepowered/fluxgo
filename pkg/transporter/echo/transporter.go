@@ -25,7 +25,7 @@ func NewTransporter() flux.Transporter {
 	}
 }
 
-func (b *RpcTransporter) DoInvoke(context *flux.Context, service flux.ServiceSpec) (*flux.ServeResponse, *flux.ServeError) {
+func (b *RpcTransporter) DoInvoke(context flux.Context, service flux.ServiceSpec) (*flux.ServeResponse, *flux.ServeError) {
 	resp, err := b.invoke0(context, service)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func (b *RpcTransporter) DoInvoke(context *flux.Context, service flux.ServiceSpe
 	return codec, nil
 }
 
-func (b *RpcTransporter) invoke0(ctx *flux.Context, service flux.ServiceSpec) (interface{}, *flux.ServeError) {
+func (b *RpcTransporter) invoke0(ctx flux.Context, service flux.ServiceSpec) (interface{}, *flux.ServeError) {
 	var data []byte
 	if r, err := ctx.BodyReader(); nil == err {
 		data, _ = ioutil.ReadAll(r)
@@ -55,7 +55,7 @@ func (b *RpcTransporter) invoke0(ctx *flux.Context, service flux.ServiceSpec) (i
 }
 
 func NewTransportCodecFunc() flux.TransportCodecFunc {
-	return func(ctx *flux.Context, value interface{}, _ map[string]interface{}) (*flux.ServeResponse, error) {
+	return func(ctx flux.Context, value interface{}, _ map[string]interface{}) (*flux.ServeResponse, error) {
 		return &flux.ServeResponse{
 			StatusCode: http.StatusOK,
 			Headers:    make(http.Header, 0),

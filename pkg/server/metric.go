@@ -30,34 +30,31 @@ var (
 )
 
 type Metrics struct {
-	EndpointAccess *prometheus.CounterVec
-	EndpointError  *prometheus.CounterVec
-	RouteDuration  *prometheus.HistogramVec
+	// 各组件请求耗时次数统计
+	routeDuration *prometheus.HistogramVec
 }
 
-func NewMetrics(listenerId string) *Metrics {
+func (m *Metrics) NewRouteVec(kind, typeId string) prometheus.Observer {
+	return m.routeDuration.WithLabelValues(kind, typeId)
+}
+
+func (m *Metrics) NewRouteVecTimer(kind, typeId string) *prometheus.Timer {
+	return prometheus.NewTimer(m.NewRouteVec(kind, typeId))
+}
+
+// NewMetricsWith 创建绑定ListenerId的统计指标。
+// 注意：此统计指标由WebListener初始化时创建和绑定
+func NewMetricsWith(listener string) *Metrics {
 	// rer: https://prometheus.io/docs/concepts/data_model/
 	// must match the regex [a-zA-Z_:][a-zA-Z0-9_:]*.
-	namespace := "onlistener:" + listenerId
+	const namespace = "fluxgo"
 	return &Metrics{
-		EndpointAccess: promauto.NewCounterVec(prometheus.CounterOpts{
+		routeDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
-			Subsystem: "endpoint",
-			Name:      "access_count",
-			Help:      "Number of endpoint access",
-		}, []string{"ProtoName", "Interface", "Method"}),
-		EndpointError: promauto.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
-			Subsystem: "endpoint",
-			Name:      "error_count",
-			Help:      "Number of endpoint access errors",
-		}, []string{"ProtoName", "Interface", "Method", "ErrorCode"}),
-		RouteDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-			Namespace: namespace,
-			Subsystem: "endpoint",
-			Name:      "route_duration",
+			Subsystem: listener,
+			Name:      "duration",
 			Help:      "Spend time by processing a endpoint",
 			Buckets:   defaultMetricBuckets,
-		}, []string{"ComponentType", "TypeId"}),
+		}, []string{"ComponentKind", "TypeId"}),
 	}
 }

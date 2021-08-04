@@ -7,7 +7,7 @@ import (
 )
 
 // Resolve 解析Argument参数值
-func Resolve(ctx *flux.Context, a *flux.ServiceArgumentSpec) (interface{}, error) {
+func Resolve(ctx flux.Context, a *flux.ServiceArgumentSpec) (interface{}, error) {
 	switch a.StructType {
 	case flux.ServiceArgumentTypeComplex:
 		return resolvepojo(ctx, a)
@@ -21,7 +21,7 @@ func Resolve(ctx *flux.Context, a *flux.ServiceArgumentSpec) (interface{}, error
 }
 
 // resolvepojo 解析POJO，按字段声明的复杂对象
-func resolvepojo(ctx *flux.Context, a *flux.ServiceArgumentSpec) (interface{}, error) {
+func resolvepojo(ctx flux.Context, a *flux.ServiceArgumentSpec) (interface{}, error) {
 	sm := make(map[string]interface{}, len(a.Fields))
 	sm["class"] = a.ClassType
 	for _, field := range a.Fields {
@@ -35,7 +35,7 @@ func resolvepojo(ctx *flux.Context, a *flux.ServiceArgumentSpec) (interface{}, e
 }
 
 // resolvefield 解析字段值
-func resolvefield(ctx *flux.Context, a *flux.ServiceArgumentSpec) (interface{}, error) {
+func resolvefield(ctx flux.Context, a *flux.ServiceArgumentSpec) (interface{}, error) {
 	resolver := ext.EncodeValueResolverByType(a.ClassType)
 	// 1: By Value loader
 	if loader, ok := common.ArgumentValueLoader(a); ok && nil != loader {
@@ -57,7 +57,7 @@ func resolvefield(ctx *flux.Context, a *flux.ServiceArgumentSpec) (interface{}, 
 }
 
 // resolveobj 解析Map对象
-func resolveobj(ctx *flux.Context, a *flux.ServiceArgumentSpec) (interface{}, error) {
+func resolveobj(ctx flux.Context, a *flux.ServiceArgumentSpec) (interface{}, error) {
 	obj, err := ext.GetLookupScopedValueFunc()(ctx, a.HttpScope, a.HttpName)
 	if nil != err {
 		return nil, err

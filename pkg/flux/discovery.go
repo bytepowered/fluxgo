@@ -13,7 +13,7 @@ type MetadataDiscovery interface {
 	SubscribeEndpoints(ctx context.Context, queue chan<- EndpointEvent) error
 
 	// SubscribeServices 订阅监听Service元数据配置变更事件
-	SubscribeServices(ctx context.Context, notifyQ chan<- ServiceEvent) error
+	SubscribeServices(ctx context.Context, queue chan<- ServiceEvent) error
 }
 
 type EventType int

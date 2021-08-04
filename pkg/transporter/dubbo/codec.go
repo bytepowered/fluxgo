@@ -12,7 +12,7 @@ const (
 )
 
 func NewTransportCodecFuncWith(codeKey, headerKey string) flux.TransportCodecFunc {
-	return func(ctx *flux.Context, body interface{}, att map[string]interface{}) (*flux.ServeResponse, error) {
+	return func(ctx flux.Context, body interface{}, att map[string]interface{}) (*flux.ServeResponse, error) {
 		attrs := make(map[string]interface{}, 8)
 		// 从Attachment中读取StatusCode，HeaderMap
 		status := flux.StatusOK

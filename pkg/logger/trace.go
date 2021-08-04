@@ -16,11 +16,11 @@ func Trace(id string) flux.Logger {
 	return ext.NewLoggerWith(context.WithValue(context.Background(), TraceId, id))
 }
 
-func TraceVerbose(ctx *flux.Context) flux.Logger {
+func TraceVerbose(ctx flux.Context) flux.Logger {
 	return TraceVerboseExtras(ctx, nil)
 }
 
-func TraceVerboseExtras(ctx *flux.Context, extras map[string]string) flux.Logger {
+func TraceVerboseExtras(ctx flux.Context, extras map[string]string) flux.Logger {
 	flux.AssertNotNil(ctx, "<flux.context> must not nil in log trace")
 	fields := map[string]string{
 		"request.method": ctx.Method(),

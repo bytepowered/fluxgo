@@ -11,7 +11,7 @@ var (
 )
 
 func NewTransportCodecFunc() flux.TransportCodecFunc {
-	return func(ctx *flux.Context, value interface{}, _ map[string]interface{}) (*flux.ServeResponse, error) {
+	return func(ctx flux.Context, value interface{}, _ map[string]interface{}) (*flux.ServeResponse, error) {
 		resp, ok := value.(*http.Response)
 		if !ok {
 			return &flux.ServeResponse{

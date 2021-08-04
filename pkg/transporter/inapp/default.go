@@ -6,7 +6,7 @@ import (
 )
 
 func newDefaultInAppInvokeFunc() InvokeFunc {
-	return func(ctx *flux.Context, service flux.ServiceSpec) (interface{}, *flux.ServeError) {
+	return func(ctx flux.Context, service flux.ServiceSpec) (interface{}, *flux.ServeError) {
 		var data []byte
 		if r, err := ctx.BodyReader(); nil == err {
 			data, _ = ioutil.ReadAll(r)

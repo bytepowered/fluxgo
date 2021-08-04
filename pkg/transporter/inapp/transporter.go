@@ -18,7 +18,7 @@ type Transporter struct {
 	codec flux.TransportCodecFunc
 }
 
-type InvokeFunc func(context *flux.Context, service flux.ServiceSpec) (interface{}, *flux.ServeError)
+type InvokeFunc func(context flux.Context, service flux.ServiceSpec) (interface{}, *flux.ServeError)
 
 func NewTransporter() flux.Transporter {
 	return &Transporter{
@@ -26,7 +26,7 @@ func NewTransporter() flux.Transporter {
 	}
 }
 
-func (b *Transporter) DoInvoke(context *flux.Context, service flux.ServiceSpec) (*flux.ServeResponse, *flux.ServeError) {
+func (b *Transporter) DoInvoke(context flux.Context, service flux.ServiceSpec) (*flux.ServeResponse, *flux.ServeError) {
 	fun, ok := LoadInvokeFunc(service.ServiceID())
 	if !ok {
 		return nil, &flux.ServeError{
@@ -44,7 +44,7 @@ func (b *Transporter) DoInvoke(context *flux.Context, service flux.ServiceSpec) 
 }
 
 func NewTransportCodecFunc() flux.TransportCodecFunc {
-	return func(ctx *flux.Context, value interface{}, _ map[string]interface{}) (*flux.ServeResponse, error) {
+	return func(ctx flux.Context, value interface{}, _ map[string]interface{}) (*flux.ServeResponse, error) {
 		return &flux.ServeResponse{
 			StatusCode: http.StatusOK,
 			Headers:    make(http.Header, 0),

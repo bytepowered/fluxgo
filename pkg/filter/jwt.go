@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 import (
@@ -28,9 +29,9 @@ var _ flux.Filter = new(JWTFilter)
 type JWTConfig struct {
 	AttKeyPrefix string
 	// 默认查找Token的函数
-	TokenExtractor func(ctx *flux.Context) (string, error)
+	TokenExtractor func(ctx flux.Context) (string, error)
 	// 加载签名验证密钥的函数
-	SecretKeyLoader func(ctx *flux.Context, token *jwt.Token) (interface{}, error)
+	SecretKeyLoader func(ctx flux.Context, token *jwt.Token) (interface{}, error)
 }
 
 func NewJWTFilter(config JWTConfig) *JWTFilter {
@@ -49,7 +50,7 @@ func (f *JWTFilter) FilterId() string {
 
 func (f *JWTFilter) OnInit(config *flux.Configuration) error {
 	if f.Config.TokenExtractor == nil {
-		f.Config.TokenExtractor = func(ctx *flux.Context) (string, error) {
+		f.Config.TokenExtractor = func(ctx flux.Context) (string, error) {
 			return ExtractTokenOAuth2(ctx)
 		}
 	}
@@ -62,7 +63,10 @@ func (f *JWTFilter) OnInit(config *flux.Configuration) error {
 }
 
 func (f *JWTFilter) DoFilter(next flux.FilterInvoker) flux.FilterInvoker {
-	return func(ctx *flux.Context) *flux.ServeError {
+	return func(ctx flux.Context) *flux.ServeError {
+		defer func() {
+			ctx.AddMetric(f.FilterId(), time.Since(ctx.StartAt()))
+		}()
 		tokenStr, err := f.Config.TokenExtractor(ctx)
 		// 启用JWT特性，但没有传Token参数
 		if tokenStr == "" || err == request.ErrNoTokenInRequest {
@@ -122,12 +126,12 @@ func (f *JWTFilter) DoFilter(next flux.FilterInvoker) flux.FilterInvoker {
 }
 
 // ExtractTokenOAuth2 按OAuth2请求，从Header:Authorization和form:access_token中抓取Token
-func ExtractTokenOAuth2(ctx *flux.Context) (string, error) {
+func ExtractTokenOAuth2(ctx flux.Context) (string, error) {
 	return request.OAuth2Extractor.ExtractToken(ctx.Request())
 }
 
 // ExtractTokenByFeature 根据Endpoint属性配置抓取Token的值
-func ExtractTokenByFeature(ctx *flux.Context) (string, error) {
+func ExtractTokenByFeature(ctx flux.Context) (string, error) {
 	expr := ctx.Endpoint().Annotation(FeatureJWT).GetString()
 	if "" == expr {
 		return "", fmt.Errorf("<%s> not found in endpoint.attrs", FeatureJWT)

@@ -94,20 +94,20 @@ func NewDispatcherManager(opts ...OptionFunc) *DispatchServer {
 
 // Prepare Call before init and startup
 func (d *DispatchServer) Prepare() error {
-	logger.Info("SERVER:EVEN:PREPARE")
+	logger.Info("SERVER:EVENT:PREPARE")
 	for _, hook := range ext.PrepareHooks() {
 		if err := hook.OnPrepare(); nil != err {
 			return err
 		}
 	}
-	logger.Info("SERVER:EVEN:PREPARE:OK")
+	logger.Info("SERVER:EVENT:PREPARE:OK")
 	return nil
 }
 
 // Init Call components init
 func (d *DispatchServer) Init() error {
-	logger.Info("SERVER:EVEN:INIT")
-	defer logger.Info("SERVER:EVEN:INIT:OK")
+	logger.Info("SERVER:EVENT:INIT")
+	defer logger.Info("SERVER:EVENT:INIT:OK")
 	// 1. WebListen Server
 	for id, dis := range d.dispatchers {
 		webListener := dis.WebListener
@@ -205,13 +205,13 @@ func (d *DispatchServer) Startup(build flux.Build) error {
 func (d *DispatchServer) start() error {
 	flux.AssertNotNil(d.defaultListener(), "<default-listener> MUST NOT nil")
 	flux.AssertNotNil(ext.GetLookupScopedValueFunc(), "<scope-value-lookup-func> MUST NOT nil")
-	logger.Info("SERVER:EVEN:STARTUP")
+	logger.Info("SERVER:EVENT:STARTUP")
 	for _, startup := range sortedStartup(ext.StartupHooks()) {
 		if err := startup.OnStartup(); nil != err {
 			return err
 		}
 	}
-	logger.Info("SERVER:EVEN:STARTUP:OK")
+	logger.Info("SERVER:EVENT:STARTUP:OK")
 	// Discovery
 	endpoints := make(chan flux.EndpointEvent, 2)
 	services := make(chan flux.ServiceEvent, 2)
@@ -219,21 +219,21 @@ func (d *DispatchServer) start() error {
 		close(endpoints)
 		close(services)
 	}()
-	logger.Info("SERVER:EVEN:DISCOVERY:START")
+	logger.Info("SERVER:EVENT:DISCOVERY:START")
 	ctx, canceled := context.WithCancel(context.Background())
 	defer canceled()
 	go d.startEventLoop(ctx, endpoints, services)
 	if err := d.startEventWatch(ctx, endpoints, services); nil != err {
 		return err
 	}
-	logger.Info("SERVER:EVEN:DISCOVERY:OK")
+	logger.Info("SERVER:EVENT:DISCOVERY:OK")
 	// Listeners
 	errch := make(chan error, 1)
 	for id, dis := range d.dispatchers {
-		logger.Infow("SERVER:EVEN:LISTENER:START", "listener-id", id)
+		logger.Infow("SERVER:EVENT:LISTENER:START", "listener-id", id)
 		go func(id string, listener flux.WebListener) {
 			errch <- listener.ListenServe()
-			logger.Infow("SERVER:EVEN:LISTENER:STOP", "listener-id", id)
+			logger.Infow("SERVER:EVENT:LISTENER:STOP", "listener-id", id)
 		}(id, dis.WebListener)
 	}
 	close(d.started)
@@ -241,8 +241,8 @@ func (d *DispatchServer) start() error {
 }
 
 func (d *DispatchServer) startEventLoop(ctx context.Context, endpoints chan flux.EndpointEvent, services chan flux.ServiceEvent) {
-	logger.Info("SERVER:EVEN:EVENTLOOP:START")
-	defer logger.Info("SERVER:EVEN:EVENTLOOP:STOP")
+	logger.Info("SERVER:EVENT:EVENTLOOP:START")
+	defer logger.Info("SERVER:EVENT:EVENTLOOP:STOP")
 	for {
 		select {
 		case epEvt, ok := <-endpoints:
@@ -263,14 +263,14 @@ func (d *DispatchServer) startEventLoop(ctx context.Context, endpoints chan flux
 
 func (d *DispatchServer) startEventWatch(ctx context.Context, endpoints chan flux.EndpointEvent, services chan flux.ServiceEvent) error {
 	for _, discovery := range ext.MetadataDiscoveries() {
-		logger.Infow("SERVER:EVEN:DISCOVERY:WATCH", "discovery-id", discovery.Id())
+		logger.Infow("SERVER:EVENT:DISCOVERY:WATCH", "discovery-id", discovery.Id())
 		if err := discovery.SubscribeServices(ctx, services); nil != err {
 			return err
 		}
 		if err := discovery.SubscribeEndpoints(ctx, endpoints); nil != err {
 			return err
 		}
-		logger.Infow("SERVER:EVEN:DISCOVERY:WATCH/OK", "discovery-id", discovery.Id())
+		logger.Infow("SERVER:EVENT:DISCOVERY:WATCH/OK", "discovery-id", discovery.Id())
 	}
 	return nil
 }
@@ -347,6 +347,10 @@ func (d *DispatchServer) onEndpointEvent(event flux.EndpointEvent) {
 	method := strings.ToUpper(event.Endpoint.HttpMethod)
 	if !SupportedHttpMethod(method) {
 		logger.Warnw("SERVER:EVENT:ENDPOINT:METHOD/ignore", epvars...)
+		return
+	}
+	if ep.SpecKey == "" {
+		logger.Warnw("SERVER:EVENT:ENDPOINT:SPEC/invalid", epvars...)
 		return
 	}
 	if err := internal.VerifyAnnotations(ep.Annotations); err != nil {
@@ -446,11 +450,10 @@ func (d *DispatchServer) newEndpointHandler(endpoint *flux.MVCEndpoint) flux.Web
 }
 
 func (d *DispatchServer) selectMVCEndpoint(endpoint *flux.EndpointSpec) (*flux.MVCEndpoint, bool) {
-	key := ext.MakeEndpointKey(endpoint.HttpMethod, endpoint.HttpPattern)
-	if mve, ok := ext.EndpointByKey(key); ok {
+	if mve, ok := ext.EndpointByKey(endpoint.SpecKey); ok {
 		return mve, false
 	} else {
-		return ext.RegisterEndpoint(key, endpoint), true
+		return ext.RegisterEndpoint(endpoint.SpecKey, endpoint), true
 	}
 }
 

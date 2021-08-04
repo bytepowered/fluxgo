@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="FluxMain" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="fluxgo" />
+    <working_directory value="$PROJECT_DIR$/main" />
+    <envs>
+      <env name="APP_LOG_CONF_FILE" value="./conf.d/log.yml" />
+      <env name="CONF_CONSUMER_FILE_PATH" value="./conf.d/dubbo.yml" />
+      <env name="CONF_PROVIDER_FILE_PATH" value="./conf.d/dubbo.yml" />
+      <env name="ASSERT_DISABLED" value="false" />
+    </envs>
+    <kind value="PACKAGE" />
+    <package value="github.com/bytepowered/fluxgo/main" />
+    <directory value="$PROJECT_DIR$/" />
+    <filePath value="$PROJECT_DIR$/main/main.go" />
+    <method v="2" />
+  </configuration>
+</component>

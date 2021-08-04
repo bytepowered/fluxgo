@@ -49,8 +49,14 @@ const (
 )
 
 const (
-	SpecKindService  = "flux.go/ServiceSpec"
-	SpecKindEndpoint = "flux.go/EndpointSpec"
+	// SpecKindService An annotation key for the meta of ServiceSpec
+	SpecKindService = "flux.go/spec.meta.service"
+
+	// SpecKindService An annotation key for the meta of EndpointSpec
+	SpecKindEndpoint = "flux.go/spec.meta.endpoint"
+
+	// SpecKindService An annotation key for documents: A brief description of the parameter.
+	SpecDocDescription = "flux.go/doc.description"
 )
 
 // NamedValueSpec 定义KV键值对

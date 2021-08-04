@@ -9,8 +9,6 @@ import (
 
 import (
 	"github.com/jinzhu/copier"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/cast"
 )
 
 import (
@@ -70,8 +68,8 @@ func WithOnContextHooks(hooks ...flux.OnContextHookFunc) DispatcherOptionFunc {
 func newDispatcher(listener flux.WebListener) *Dispatcher {
 	return &Dispatcher{
 		WebListener:            listener,
-		metrics:                NewMetrics(listener.ListenerId()),
-		pooled:                 &sync.Pool{New: func() interface{} { return flux.NewContext() }},
+		metrics:                NewMetricsWith(listener.ListenerId()),
+		pooled:                 &sync.Pool{New: func() interface{} { return internal.NewContext() }},
 		versionLocator:         DefaultRequestVersionLocateFunc,
 		responseWriter:         new(internal.JSONServeResponseWriter),
 		onContextHooks:         make([]flux.OnContextHookFunc, 0, 4),
@@ -111,9 +109,9 @@ func (d *Dispatcher) route(webex flux.WebContext, versions *flux.MVCEndpoint) (e
 	// check endpoint bindings
 	flux.AssertTrue(endpoint.IsValid(), "<endpoint> must valid when routing")
 	flux.AssertTrue(endpoint.Service.IsValid(), "<endpoint.service> must valid when routing")
-	ctxw := d.pooled.Get().(*flux.Context)
+	ctxw := d.pooled.Get().(flux.Context)
 	defer d.pooled.Put(ctxw)
-	ctxw.Reset(webex, &endpoint, internal.Enforce)
+	ctxw.(*internal.Context).Reset(webex, &endpoint)
 	ctxw.SetAttribute(flux.XRequestTime, ctxw.StartAt().Unix())
 	ctxw.SetAttribute(flux.XRequestId, ctxw.RequestId())
 	logger.TraceVerbose(ctxw).Infow("DISPATCH:EVEN:ROUTE:START")
@@ -128,7 +126,7 @@ func (d *Dispatcher) route(webex flux.WebContext, versions *flux.MVCEndpoint) (e
 	return d.dispatch(ctxw)
 }
 
-func (d *Dispatcher) dispatch(ctx *flux.Context) *flux.ServeError {
+func (d *Dispatcher) dispatch(ctx flux.Context) *flux.ServeError {
 	// Metric: Route
 	defer func() {
 		ctx.AddMetric("dispatcher", time.Since(ctx.StartAt()))
@@ -139,36 +137,25 @@ func (d *Dispatcher) dispatch(ctx *flux.Context) *flux.ServeError {
 	for _, before := range d.onBeforeFilterHooks {
 		before(ctx, filters)
 	}
-	next := func(ctx *flux.Context) *flux.ServeError {
+	next := func(ctx flux.Context) *flux.ServeError {
 		ctx.AddMetric("filters", time.Since(ctx.StartAt()))
 		if perr := d.handlePlugins(ctx); perr != nil {
 			return perr
 		}
 		return d.doTransport(ctx)
 	}
-	if wkerr := d.metric(ctx, d.walk(next, filters)(ctx)); wkerr != nil {
-		d.responseWriter.WriteError(ctx, wkerr)
+	// fin: transport and write data (response,error)
+	if ferr := d.makeFilterChain(next, filters)(ctx); ferr != nil {
+		d.responseWriter.WriteError(ctx, ferr)
 	}
 	return nil // always return nil
 }
 
-func (d *Dispatcher) walk(next flux.FilterInvoker, filters []flux.Filter) flux.FilterInvoker {
+func (d *Dispatcher) makeFilterChain(next flux.FilterInvoker, filters []flux.Filter) flux.FilterInvoker {
 	for i := len(filters) - 1; i >= 0; i-- {
 		next = filters[i].DoFilter(next)
 	}
 	return next
-}
-
-func (d Dispatcher) metric(ctx *flux.Context, err *flux.ServeError) *flux.ServeError {
-	// Access Counter: ProtoName, Interface, Method
-	service := ctx.Service()
-	proto, uri, method := service.Protocol, service.Interface, service.Method
-	d.metrics.EndpointAccess.WithLabelValues(proto, uri, method).Inc()
-	if flux.NotNil(err) {
-		// Error Counter: ProtoName, Interface, Method, ErrorCode
-		d.metrics.EndpointError.WithLabelValues(proto, uri, method, cast.ToString(err.ErrorCode)).Inc()
-	}
-	return err
 }
 
 func (d *Dispatcher) lookup(webex flux.WebContext, server flux.WebListener, endpoints *flux.MVCEndpoint) (*flux.EndpointSpec, bool) {
@@ -184,12 +171,15 @@ func (d *Dispatcher) lookup(webex flux.WebContext, server flux.WebListener, endp
 	return endpoints.Lookup(d.versionLocator(webex))
 }
 
-func (d *Dispatcher) handlePlugins(ctx *flux.Context) *flux.ServeError {
+func (d *Dispatcher) handlePlugins(ctx flux.Context) *flux.ServeError {
 	defer func() {
 		ctx.AddMetric("plugins", time.Since(ctx.StartAt()))
 	}()
 	for _, plugin := range d.selectPlugins(ctx) {
-		if pherr := plugin.DoHandle(ctx); pherr != nil {
+		timer := d.metrics.NewRouteVecTimer("Plugin", plugin.PluginId())
+		pherr := plugin.DoHandle(ctx)
+		timer.ObserveDuration()
+		if pherr != nil {
 			return pherr
 		}
 		ctx.AddMetric(plugin.PluginId(), time.Since(ctx.StartAt()))
@@ -197,7 +187,7 @@ func (d *Dispatcher) handlePlugins(ctx *flux.Context) *flux.ServeError {
 	return nil
 }
 
-func (d *Dispatcher) doTransport(ctx *flux.Context) *flux.ServeError {
+func (d *Dispatcher) doTransport(ctx flux.Context) *flux.ServeError {
 	select {
 	case <-ctx.Context().Done():
 		return &flux.ServeError{StatusCode: flux.StatusBadRequest,
@@ -222,7 +212,7 @@ func (d *Dispatcher) doTransport(ctx *flux.Context) *flux.ServeError {
 	for _, hook := range d.onBeforeTransportHooks {
 		hook(ctx, transporter)
 	}
-	timer := prometheus.NewTimer(d.metrics.RouteDuration.WithLabelValues("Transporter", proto))
+	timer := d.metrics.NewRouteVecTimer("Transporter", proto)
 	invret, inverr := transporter.DoInvoke(ctx, ctx.Service())
 	timer.ObserveDuration()
 	select {
@@ -259,7 +249,7 @@ func (d *Dispatcher) AddOnContextHook(h flux.OnContextHookFunc) {
 	d.onContextHooks = append(d.onContextHooks, h)
 }
 
-func (d *Dispatcher) selectFilters(ctx *flux.Context) []flux.Filter {
+func (d *Dispatcher) selectFilters(ctx flux.Context) []flux.Filter {
 	selective := make([]flux.Filter, 0, 16)
 	for _, selector := range ext.FilterSelectors() {
 		if selector.Activate(ctx) {
@@ -269,7 +259,7 @@ func (d *Dispatcher) selectFilters(ctx *flux.Context) []flux.Filter {
 	return append(ext.GlobalFilters(), selective...)
 }
 
-func (d *Dispatcher) selectPlugins(ctx *flux.Context) []flux.Plugin {
+func (d *Dispatcher) selectPlugins(ctx flux.Context) []flux.Plugin {
 	selective := make([]flux.Plugin, 0, 16)
 	for _, selector := range ext.PluginSelectors() {
 		if selector.Activate(ctx) {

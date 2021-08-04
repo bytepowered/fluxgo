@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cast"
 )
 
-func DefaultAssembleRequest(ctx *flux.Context, service *flux.ServiceSpec) (*http.Request, error) {
+func DefaultAssembleRequest(ctx flux.Context, service *flux.ServiceSpec) (*http.Request, error) {
 	// url
 	newUrl, newErr := url.Parse(service.Url)
 	if newErr != nil {
@@ -65,7 +65,7 @@ func DefaultAssembleRequest(ctx *flux.Context, service *flux.ServiceSpec) (*http
 }
 
 // SelectToArgumentValues 解析Argument参数列表，并返回http标准参数值
-func SelectToArgumentValues(ctx *flux.Context, arguments []flux.ServiceArgumentSpec, selector func(flux.ServiceArgumentSpec) bool) (url.Values, error) {
+func SelectToArgumentValues(ctx flux.Context, arguments []flux.ServiceArgumentSpec, selector func(flux.ServiceArgumentSpec) bool) (url.Values, error) {
 	values := make(url.Values, len(arguments))
 	for _, arg := range arguments {
 		if !selector(arg) {
@@ -81,7 +81,7 @@ func SelectToArgumentValues(ctx *flux.Context, arguments []flux.ServiceArgumentS
 }
 
 // ResolveQueryValues 解析Query参数
-func ResolveQueryValues(ctx *flux.Context, args []flux.ServiceArgumentSpec) (url.Values, error) {
+func ResolveQueryValues(ctx flux.Context, args []flux.ServiceArgumentSpec) (url.Values, error) {
 	// 没有定义参数，透传全部Query参数
 	if len(args) == 0 {
 		return ctx.QueryVars(), nil
@@ -93,7 +93,7 @@ func ResolveQueryValues(ctx *flux.Context, args []flux.ServiceArgumentSpec) (url
 }
 
 // ResolvePostFormValues 解析Form表单参数
-func ResolvePostFormValues(ctx *flux.Context, args []flux.ServiceArgumentSpec) (url.Values, error) {
+func ResolvePostFormValues(ctx flux.Context, args []flux.ServiceArgumentSpec) (url.Values, error) {
 	// 没有定义参数，透传全部Form参数
 	if len(args) == 0 {
 		return ctx.PostFormVars(), nil
@@ -104,7 +104,7 @@ func ResolvePostFormValues(ctx *flux.Context, args []flux.ServiceArgumentSpec) (
 	})
 }
 
-func DefaultAssembleHeaders(ctx *flux.Context) (http.Header, error) {
+func DefaultAssembleHeaders(ctx flux.Context) (http.Header, error) {
 	header := ctx.HeaderVars()
 	for k, v := range ctx.Attributes() {
 		// ':' 表示特定类型的属性 -> tag:xx,  feature:xx

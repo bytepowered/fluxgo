@@ -3,13 +3,13 @@ package flux
 type (
 	// OnContextHookFunc 用于WebContext与Context的交互勾子；
 	// 在每个请求被路由执行时，在创建Context后被调用。
-	OnContextHookFunc func(WebContext, *Context)
+	OnContextHookFunc func(WebContext, Context)
 
 	// OnBeforeFilterHookFunc 在Filter执行前被调用的勾子函数
-	OnBeforeFilterHookFunc func(*Context, []Filter)
+	OnBeforeFilterHookFunc func(Context, []Filter)
 
 	// OnBeforeTransportHookFunc 在Transporter执行前被调用的勾子函数
-	OnBeforeTransportHookFunc func(*Context, Transporter)
+	OnBeforeTransportHookFunc func(Context, Transporter)
 )
 
 // EndpointSelector 用于请求处理前的动态选择Endpoint

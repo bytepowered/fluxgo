@@ -11,7 +11,7 @@ var _ flux.ServeResponseWriter = new(JSONServeResponseWriter)
 // JSONServeResponseWriter 默认输出JSON结构响应数据的Writer
 type JSONServeResponseWriter int
 
-func (r *JSONServeResponseWriter) Write(ctx *flux.Context, response *flux.ServeResponse) {
+func (r *JSONServeResponseWriter) Write(ctx flux.Context, response *flux.ServeResponse) {
 	header := ctx.ResponseWriter().Header()
 	for k, hv := range response.Headers {
 		for _, v := range hv {
@@ -29,7 +29,7 @@ func (r *JSONServeResponseWriter) Write(ctx *flux.Context, response *flux.ServeR
 	}
 }
 
-func (r *JSONServeResponseWriter) WriteError(ctx *flux.Context, err *flux.ServeError) {
+func (r *JSONServeResponseWriter) WriteError(ctx flux.Context, err *flux.ServeError) {
 	bytes, _ := ext.JSONMarshalObject(map[string]interface{}{
 		"status":  "error",
 		"code":    err.ErrorCode,
@@ -39,7 +39,7 @@ func (r *JSONServeResponseWriter) WriteError(ctx *flux.Context, err *flux.ServeE
 	r.write(ctx, err.StatusCode, bytes)
 }
 
-func (r *JSONServeResponseWriter) write(ctx *flux.Context, status int, body []byte) {
+func (r *JSONServeResponseWriter) write(ctx flux.Context, status int, body []byte) {
 	ctx.ResponseWriter().Header().Add("X-Writer-Id", "Fx-TWriter")
 	err := ctx.Write(status, flux.MIMEApplicationJSONCharsetUTF8, body)
 	if nil != err {

@@ -16,7 +16,7 @@ import (
 
 // LookupValueByExpr 搜索LookupExpr表达式指定域的值。
 // Expr格式： Scope:Key
-func LookupValueByExpr(ctx *flux.Context, expr string) (interface{}, error) {
+func LookupValueByExpr(ctx flux.Context, expr string) (interface{}, error) {
 	if expr == "" || nil == ctx {
 		return nil, errors.New("empty lookup expr, or context is nil")
 	}
@@ -32,7 +32,7 @@ func LookupValueByExpr(ctx *flux.Context, expr string) (interface{}, error) {
 }
 
 // LookupValueByScoped 根据Scope,Key从Context中查找参数；支持复杂参数类型
-func LookupValueByScoped(ctx *flux.Context, scope, key string) (flux.EncodeValue, error) {
+func LookupValueByScoped(ctx flux.Context, scope, key string) (flux.EncodeValue, error) {
 	if scope == "" || key == "" {
 		return ext.NewNilEncodeValue(), errors.New("lookup empty scope or key, scope: " + scope + ", key: " + key)
 	}

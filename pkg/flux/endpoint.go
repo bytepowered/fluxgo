@@ -16,6 +16,7 @@ const (
 
 // EndpointSpec 定义前端Http请求与后端RPC服务的端点元数据
 type EndpointSpec struct {
+	SpecKey     string      `json:"-"`                              // 标识Endpoint端点的Key
 	Kind        string      `json:"kind" yaml:"kind"`               // Endpoint类型
 	Application string      `json:"application" yaml:"application"` // 所属应用名
 	Version     string      `json:"version" yaml:"version"`         // 端点版本号

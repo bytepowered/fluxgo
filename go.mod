@@ -10,7 +10,7 @@ require (
 	github.com/dubbogo/go-zookeeper v1.0.3
 	github.com/jinzhu/copier v0.3.2
 	github.com/json-iterator/go v1.1.10
-	github.com/labstack/echo/v4 v4.1.16
+	github.com/labstack/echo/v4 v4.4.0
 	github.com/labstack/gommon v0.3.0
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/prometheus/client_golang v1.9.0
@@ -19,8 +19,11 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/zap v1.16.0
-	golang.org/x/net v0.0.0-20201021035429-f5854403a974
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-replace github.com/apache/dubbo-go => github.com/yongjiapro/dubbo-go v1.5.6-rc4
+replace (
+	github.com/apache/dubbo-go => github.com/yongjiapro/dubbo-go v1.5.6-rc4
+	github.com/labstack/echo/v4 => github.com/bytepowered/echo/v4 v4.4.1-rc0
+)

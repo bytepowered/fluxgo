@@ -28,7 +28,7 @@ type (
 	// PermissionVerifyFunc 权限验证
 	// @return pass 对当前请求的权限验证是否通过；
 	// @return err 如果验证过程发生错误，返回error；
-	PermissionVerifyFunc func(services []flux.ServiceSpec, ctx *flux.Context) (report PermissionReport, err error)
+	PermissionVerifyFunc func(services []flux.ServiceSpec, ctx flux.Context) (report PermissionReport, err error)
 )
 
 // PermissionConfig 权限配置
@@ -68,7 +68,7 @@ func (p *PermissionFilter) OnInit(config *flux.Configuration) error {
 		return nil
 	}
 	if flux.IsNil(p.Configs.SkipFunc) {
-		p.Configs.SkipFunc = func(_ *flux.Context) bool {
+		p.Configs.SkipFunc = func(_ flux.Context) bool {
 			return false
 		}
 	}
@@ -83,10 +83,13 @@ func (*PermissionFilter) FilterId() string {
 }
 
 func (p *PermissionFilter) DoFilter(next flux.FilterInvoker) flux.FilterInvoker {
-	return func(ctx *flux.Context) *flux.ServeError {
+	return func(ctx flux.Context) *flux.ServeError {
 		if p.Disabled || p.Configs.SkipFunc(ctx) {
 			return next(ctx)
 		}
+		defer func() {
+			ctx.AddMetric(p.FilterId(), time.Since(ctx.StartAt()))
+		}()
 		ids := ctx.Endpoint().Annotation(flux.EndpointAnnotationPermissions).GetStrings()
 		workers := make([]flux.ServiceSpec, 0, len(ids))
 		for _, id := range ids {
@@ -126,7 +129,7 @@ func (p *PermissionFilter) DoFilter(next flux.FilterInvoker) flux.FilterInvoker 
 }
 
 // InvokeCodec 执行权限验证的后端服务，获取响应结果；
-func (p *PermissionFilter) InvokeCodec(ctx *flux.Context, service flux.ServiceSpec) (*flux.ServeResponse, *flux.ServeError) {
+func (p *PermissionFilter) InvokeCodec(ctx flux.Context, service flux.ServiceSpec) (*flux.ServeResponse, *flux.ServeError) {
 	proto := service.Protocol
 	transporter, ok := ext.TransporterByProto(proto)
 	if !ok {

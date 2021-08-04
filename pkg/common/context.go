@@ -15,14 +15,14 @@ import (
 var _slim = echo.New()
 
 // NewSlimContextTODO 创建SlimContext对象。SlimContext不可用于具有写入响应的场景。
-func NewSlimContextTODO(id string) *flux.Context {
+func NewSlimContextTODO(id string) flux.Context {
 	return NewSlimContext(context.TODO(), id)
 }
 
-// NewSlimContextTODO 创建SlimContext对象。SlimContext不可用于具有写入响应的场景。
-func NewSlimContext(ctx context.Context, id string, vars ...map[string]interface{}) *flux.Context {
-	fxctx := flux.NewContext()
-	fxctx.Reset(newSlimWithID(ctx, id), &flux.EndpointSpec{Application: "slim"}, internal.Enforce)
+// NewSlimContext 创建SlimContext对象。SlimContext不可用于具有写入响应的场景。
+func NewSlimContext(ctx context.Context, id string, vars ...map[string]interface{}) flux.Context {
+	fxctx := internal.NewContext()
+	fxctx.Reset(newSlimWithID(ctx, id), &flux.EndpointSpec{Application: "slim"})
 	fxctx.SetVariable("flux.go/is.slim.ctx", true)
 	if len(vars) > 0 {
 		for k, v := range vars[0] {

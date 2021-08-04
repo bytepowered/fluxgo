@@ -85,6 +85,7 @@ func (d *ResourceMetadataDiscovery) SubscribeEndpoints(ctx context.Context, even
 				continue
 			}
 			dup := el
+			dup.SpecKey = ext.MakeEndpointSpecKey(dup.HttpMethod, dup.HttpPattern)
 			if evt, err := ToEndpointEvent(&dup, flux.EventTypeAdded); err == nil {
 				events <- evt
 			} else {

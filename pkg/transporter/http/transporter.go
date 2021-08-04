@@ -31,9 +31,9 @@ type (
 	// Option 配置函数
 	Option func(service *RpcTransporter)
 	// AssembleRequestFunc Http调用参数封装函数，可外部化配置为其它协议的值对象
-	AssembleRequestFunc func(ctx *flux.Context, service *flux.ServiceSpec) (*http.Request, error)
+	AssembleRequestFunc func(ctx flux.Context, service *flux.ServiceSpec) (*http.Request, error)
 	// AssemblyHeadersFunc 封装Attachment为Headers的函数
-	AssemblyHeadersFunc func(context *flux.Context) (http.Header, error)
+	AssemblyHeadersFunc func(context flux.Context) (http.Header, error)
 )
 
 type RpcTransporter struct {
@@ -99,7 +99,7 @@ func (b *RpcTransporter) OnInit(config *flux.Configuration) error {
 	return nil
 }
 
-func (b *RpcTransporter) DoInvoke(ctx *flux.Context, service flux.ServiceSpec) (*flux.ServeResponse, *flux.ServeError) {
+func (b *RpcTransporter) DoInvoke(ctx flux.Context, service flux.ServiceSpec) (*flux.ServeResponse, *flux.ServeError) {
 	invret, inverr := b.invoke0(ctx, service)
 	if inverr != nil {
 		return nil, inverr
@@ -117,7 +117,7 @@ func (b *RpcTransporter) DoInvoke(ctx *flux.Context, service flux.ServiceSpec) (
 	return decret, nil
 }
 
-func (b *RpcTransporter) invoke0(ctx *flux.Context, service flux.ServiceSpec) (interface{}, *flux.ServeError) {
+func (b *RpcTransporter) invoke0(ctx flux.Context, service flux.ServiceSpec) (interface{}, *flux.ServeError) {
 	flux.AssertNotEmpty(service.Url, "<service.url> MUST NOT empty in http transporter")
 	// request
 	newRequest, err := b.assembleRequest(ctx, &service)

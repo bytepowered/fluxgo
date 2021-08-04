@@ -3,15 +3,18 @@ package listener
 import (
 	"context"
 	"errors"
-	ext "github.com/bytepowered/fluxgo/pkg/ext"
-	"github.com/bytepowered/fluxgo/pkg/flux"
-	internal2 "github.com/bytepowered/fluxgo/pkg/internal"
-	logger "github.com/bytepowered/fluxgo/pkg/logger"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"net/http"
 	"runtime/debug"
 	"strings"
+)
+
+import (
+	"github.com/bytepowered/fluxgo/pkg/ext"
+	"github.com/bytepowered/fluxgo/pkg/flux"
+	"github.com/bytepowered/fluxgo/pkg/internal"
+	"github.com/bytepowered/fluxgo/pkg/logger"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 const (
@@ -58,8 +61,8 @@ func NewAdaptWebListenerWith(listenerId string, options *flux.Configuration, ide
 			swc := NewWebContext(echoc, id, webListener)
 			// Note: 不要修改echo.context.request对象引用，echo路由绑定了函数入口的request对象，
 			// 从而导致后续基于request修改路由时，会导致Http路由失败。
-			flux.AssertNil(echoc.Get(string(internal2.CtxkeyWebContext)), "<web-context> must be nil")
-			echoc.Set(string(internal2.CtxkeyWebContext), swc)
+			flux.AssertNil(echoc.Get(string(internal.CtxkeyWebContext)), "<web-context> must be nil")
+			echoc.Set(string(internal.CtxkeyWebContext), swc)
 			defer func() {
 				if rvr := recover(); rvr != nil && rvr != http.ErrAbortHandler {
 					logger.Trace(id).Errorw("SERVER:CRITICAL:PANIC", "error", rvr, "error.trace", string(debug.Stack()))
@@ -100,7 +103,7 @@ func NewAdaptWebListenerWith(listenerId string, options *flux.Configuration, ide
 	// 流量日志
 	if enabled := features.GetBool(ConfigKeyFeatureTrafficEnable); enabled {
 		logger.Infof("WebListener(id:%s), feature TRAFFIC: enabled", webListener.id)
-		webListener.AddFilter(NewAccessLogFilter())
+		webListener.AddFilter(NewTrafficVisitFilter())
 	}
 	// After features
 	if mws != nil && len(mws.AfterFeature) > 0 {
@@ -159,8 +162,7 @@ func (s *AdaptWebListener) SetBodyResolver(r flux.WebBodyResolver) {
 
 func (s *AdaptWebListener) SetNotfoundHandler(f flux.WebHandlerFunc) {
 	flux.AssertNotNil(f, "<notfound-handler> must not nil, listener-id: "+s.id)
-	s.mustNotStarted()
-	echo.NotFoundHandler = AdaptWebHandler(f).AdaptFunc
+	s.mustNotStarted().server.NotFoundHandler = AdaptWebHandler(f).AdaptFunc
 }
 
 func (s *AdaptWebListener) SetErrorHandler(handler flux.WebErrorHandlerFunc) {
@@ -170,14 +172,14 @@ func (s *AdaptWebListener) SetErrorHandler(handler flux.WebErrorHandlerFunc) {
 		if flux.IsNil(err) {
 			return
 		}
-		webex, ok := c.Get(string(internal2.CtxkeyWebContext)).(flux.WebContext)
+		webex, ok := c.Get(string(internal.CtxkeyWebContext)).(flux.WebContext)
 		flux.Assert(ok, "<web-context> is invalid in http-error-handler")
 		handler(webex, err)
 	}
 }
 
 func (s *AdaptWebListener) HandleNotfound(webex flux.WebContext) error {
-	return echo.NotFoundHandler(webex.(*AdaptWebContext).ShadowContext())
+	return s.server.NotFoundHandler(webex.(*AdaptWebContext).ShadowContext())
 }
 
 func (s *AdaptWebListener) HandleError(webex flux.WebContext, err error) {
