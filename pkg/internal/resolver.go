@@ -1,15 +1,12 @@
 package internal
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"github.com/spf13/cast"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"reflect"
-	"strings"
 )
 
 import (
@@ -156,61 +153,49 @@ func ToStringMapE(valueobj flux.EncodeValue) (map[string]interface{}, error) {
 	}
 	switch valueobj.Encoding {
 	case flux.EncodingTypeMapStringList:
-		orimap, ok := valueobj.Value.(map[string][]string)
+		omap, ok := valueobj.Value.(map[string][]string)
 		flux.AssertM(ok, func() string {
 			return fmt.Sprintf("mt-value(define:%s) is not map[string][]string, mt-value:%+v", valueobj.Encoding, valueobj.Value)
 		})
-		var hashmap = make(map[string]interface{}, len(orimap))
-		for k, v := range orimap {
-			hashmap[k] = v
+		var cmap = make(map[string]interface{}, len(omap))
+		for k, v := range omap {
+			cmap[k] = v
 		}
-		return hashmap, nil
+		return cmap, nil
+
 	case flux.EncodingTypeGoMapString:
 		return cast.ToStringMap(valueobj.Value), nil
+
 	case flux.EncodingTypeGoString:
-		oristr, ok := valueobj.Value.(string)
+		str, ok := valueobj.Value.(string)
 		flux.AssertM(ok, func() string {
 			return fmt.Sprintf("mt-value(define:%s) is not go:string, mt-value:%+v", valueobj.Encoding, valueobj.Value)
 		})
-		var hashmap = map[string]interface{}{}
-		if err := ext.JSONUnmarshal([]byte(oristr), &hashmap); nil != err {
-			return nil, fmt.Errorf("cannot decode text to hashmap, text: %s, error:%w", valueobj.Value, err)
-		} else {
-			return hashmap, nil
-		}
+		return JSONToStrMapE([]byte(str))
+
 	case flux.EncodingTypeGoObject:
-		if sm, err := cast.ToStringMapE(valueobj.Value); nil != err {
-			return nil, fmt.Errorf("cannot cast object to hashmap, object: %+v, object.type:%T", valueobj.Value, valueobj.Value)
-		} else {
-			return sm, nil
-		}
+		return JSONObjectToStrMapE(valueobj)
+
 	default:
-		var data []byte
 		if valueobj.Encoding.Contains("application/json") {
-			if bs, err := toByteArray(valueobj.Value); nil != err {
+			data, err := toByteArray(valueobj.Value)
+			if nil != err {
 				return nil, err
-			} else {
-				data = bs
 			}
+			return JSONToStrMapE(data)
 		} else if valueobj.Encoding.Contains("application/x-www-form-urlencoded") {
-			if bs, err := toByteArray(valueobj.Value); nil != err {
+			data, err := toByteArray(valueobj.Value)
+			if nil != err {
 				return nil, err
-			} else if jbs, err := JSONBytesFromQueryString(bs); nil != err {
+			}
+			if jsonbytes, err := JSONFromQuery(data); nil != err {
 				return nil, err
 			} else {
-				data = jbs
+				return JSONToStrMapE(jsonbytes)
 			}
 		} else {
-			if sm, err := cast.ToStringMapE(valueobj.Value); nil == err {
-				return sm, nil
-			} else {
-				return nil, fmt.Errorf("unsupported mime-type to hashmap, value: %+v, value.type:%T, mime-type: %s",
-					valueobj.Value, valueobj.Value, valueobj.Encoding)
-			}
+			return JSONObjectToStrMapE(valueobj)
 		}
-		var hashmap = map[string]interface{}{}
-		err := ext.JSONUnmarshal(data, &hashmap)
-		return hashmap, err
 	}
 }
 
@@ -282,34 +267,4 @@ func isEmptyOrNil(v interface{}) bool {
 		return "" == s
 	}
 	return nil == v
-}
-
-// Tested
-func JSONBytesFromQueryString(queryStr []byte) ([]byte, error) {
-	queryValues, err := url.ParseQuery(string(queryStr))
-	if nil != err {
-		return nil, err
-	}
-	fields := make([]string, 0, len(queryValues))
-	for key, values := range queryValues {
-		if len(values) > 1 {
-			// quote with ""
-			copied := make([]string, len(values))
-			for i, val := range values {
-				copied[i] = "\"" + string(JSONStringValueEncode(&val)) + "\""
-			}
-			fields = append(fields, "\""+key+"\":["+strings.Join(copied, ",")+"]")
-		} else {
-			fields = append(fields, "\""+key+"\":\""+string(JSONStringValueEncode(&values[0]))+"\"")
-		}
-	}
-	bf := new(bytes.Buffer)
-	bf.WriteByte('{')
-	bf.WriteString(strings.Join(fields, ","))
-	bf.WriteByte('}')
-	return bf.Bytes(), nil
-}
-
-func JSONStringValueEncode(str *string) []byte {
-	return []byte(strings.Replace(*str, `"`, `\"`, -1))
 }

@@ -14,7 +14,7 @@ import (
 
 func Test_QueryToJsonBytes(t *testing.T) {
 	query := `foo=bar&abc=001&foo=value&data="abc"`
-	jb, err := JSONBytesFromQueryString([]byte(query))
+	jb, err := JSONFromQuery([]byte(query))
 	assert := assert2.New(t)
 	assert.NoError(err, "parse, must not error")
 	jbs := string(jb)
@@ -31,7 +31,7 @@ func Test_QueryToJsonBytes(t *testing.T) {
 func Benchmark_QueryToJsonBytes(b *testing.B) {
 	query := `foo=bar&abc=001&foo=value&data="abc"`
 	for i := 0; i < b.N; i++ {
-		_, _ = JSONBytesFromQueryString([]byte(query))
+		_, _ = JSONFromQuery([]byte(query))
 	}
 }
 
