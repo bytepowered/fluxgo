@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	_jsonQuoteReplacer = strings.NewReplacer(`"`, `\"`)
+	// 转义 "" 符号
+	_jsonQuoteEncoder = strings.NewReplacer(`"`, `\"`)
 )
 
 // JSONFromQuery 将HttpUrlQuery字符串转换成JSON格式数据。
@@ -27,11 +28,11 @@ func JSONFromQuery(queryStr []byte) ([]byte, error) {
 			// quote with ""
 			copied := make([]string, len(values))
 			for i, val := range values {
-				copied[i] = "\"" + string(JSONQuoteReplace(&val)) + "\""
+				copied[i] = "\"" + string(JSONEncodeQuote(&val)) + "\""
 			}
 			fields = append(fields, "\""+key+"\":["+strings.Join(copied, ",")+"]")
 		} else {
-			fields = append(fields, "\""+key+"\":\""+string(JSONQuoteReplace(&values[0]))+"\"")
+			fields = append(fields, "\""+key+"\":\""+string(JSONEncodeQuote(&values[0]))+"\"")
 		}
 	}
 	bf := new(bytes.Buffer)
@@ -41,8 +42,8 @@ func JSONFromQuery(queryStr []byte) ([]byte, error) {
 	return bf.Bytes(), nil
 }
 
-func JSONQuoteReplace(str *string) []byte {
-	return []byte(_jsonQuoteReplacer.Replace(*str))
+func JSONEncodeQuote(str *string) []byte {
+	return []byte(_jsonQuoteEncoder.Replace(*str))
 }
 
 func JSONToStrMapE(data []byte) (map[string]interface{}, error) {
