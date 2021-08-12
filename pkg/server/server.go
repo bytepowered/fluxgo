@@ -450,7 +450,7 @@ func (d *DispatchServer) newEndpointHandler(endpoint *flux.MVCEndpoint) flux.Web
 }
 
 func (d *DispatchServer) selectMVCEndpoint(endpoint *flux.EndpointSpec) (*flux.MVCEndpoint, bool) {
-	if mve, ok := ext.EndpointByKey(endpoint.SpecKey); ok {
+	if mve, ok := ext.EndpointBySpecKey(endpoint.SpecKey); ok {
 		return mve, false
 	} else {
 		return ext.RegisterEndpoint(endpoint.SpecKey, endpoint), true

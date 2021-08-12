@@ -2,17 +2,28 @@ package ext
 
 import (
 	"github.com/bytepowered/fluxgo/pkg/flux"
+	"regexp"
 	"strings"
 	"sync"
 )
 
 var (
 	endpoints = new(sync.Map)
+	epregexp  = regexp.MustCompile(`\{[^}]*\}`)
 )
 
+// MakeEndpointSpecKey 构建HttpEndpoint的唯一标识端点Key。
+// 注意1：Http Pattern 大小写敏感；
+// 注意2：Restful的动态路径，以其模式作为唯一标识；
 func MakeEndpointSpecKey(method, pattern string) string {
 	// Note: pattern is case-sensitive
-	return strings.ToUpper(method) + "#" + pattern
+	// Note: pattern must be unique, dynamic path
+	method = strings.ToUpper(method)
+	if !strings.Contains(pattern, "{") {
+		return method + "#" + pattern
+	} else {
+		return method + "#" + epregexp.ReplaceAllString(pattern, "+")
+	}
 }
 
 func RegisterEndpoint(key string, endpoint *flux.EndpointSpec) *flux.MVCEndpoint {
@@ -23,7 +34,7 @@ func RegisterEndpoint(key string, endpoint *flux.EndpointSpec) *flux.MVCEndpoint
 	return mvce
 }
 
-func EndpointByKey(key string) (*flux.MVCEndpoint, bool) {
+func EndpointBySpecKey(key string) (*flux.MVCEndpoint, bool) {
 	ep, ok := endpoints.Load(key)
 	if ok {
 		return ep.(*flux.MVCEndpoint), true
